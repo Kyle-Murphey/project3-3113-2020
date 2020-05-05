@@ -672,15 +672,15 @@ void firstfitRR(int space, int pNum, int quantum, process **pHead, long unsigned
 int main(int argc, char** argv)
 {
     // check to make sure enough arguments are typed in the CL
-    if (argc < 5)
+    /*if (argc < 5)
     {
         fprintf(stderr, "not enough arguments\n");
         exit(-1);
-    }
+    }*/
 
-    int quantum = atoi(argv[1])/*8*/;
-    int pNum = atoi(argv[2])/*8*/;
-    int totalSpace = atoi(argv[3])/*653556*/;
+    int quantum = /*atoi(argv[1])*/8;
+    int pNum = /*atoi(argv[2])*/8;
+    int totalSpace = /*atoi(argv[3])*/653556;
     long unsigned int actualSize = 0; //amount of memory already allocated
 
     // check for valid quantum size
@@ -707,7 +707,7 @@ int main(int argc, char** argv)
     createProcs(&pHead, pNum, &nHead);
 
 
-    if (strcmp(argv[4]/*"FIRSTFIT"*/, FIRSTFIT) == 0)
+    if (strcmp(/*argv[4]*/"FIRSTFIT", FIRSTFIT) == 0)
     {
         firstfitRR(totalSpace, pNum, quantum, &pHead, &actualSize, &nHead);
     }
