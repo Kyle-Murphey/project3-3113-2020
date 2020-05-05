@@ -34,14 +34,14 @@ typedef struct node {
 
 /* process struct for each process to run */
 typedef struct process {
-    FILE* file;
-    node* nHead;
-    struct process* next;
-    int pNum;
-    int line;
-    int isLast;
-    unsigned long pos;
-    int deadlock;
+    FILE* file; //instruction file
+    node* nHead; //the dllist of nodes
+    struct process* next; //the next process in the RR
+    int pNum; //ID to keep track of processes
+    int line; //line of execution
+    int isLast; //flag for element that connects behind the pHead
+    unsigned long pos; //position in the instruction file
+    int deadlock; //tracker for contiguous deadlocks in a process
 } process;
 
 /*
@@ -98,7 +98,7 @@ void release(node** head, byte pname[17], long unsigned int *actualSize)
                 temp = NULL;
                 return; //done with function
             }
-                // node besides the head
+            // node besides the head
             else
             {
                 temp->prev->next = temp->next;
@@ -125,7 +125,7 @@ void release(node** head, byte pname[17], long unsigned int *actualSize)
             *head = NULL;
             return;
         }
-            // last node
+        // last node
         else
         {
             temp->prev->next = temp->next;
@@ -162,12 +162,12 @@ void list(node** head, byte c2[17], long unsigned int actualSize, long unsigned 
         if (actualSize == 0)
         {
             printf("(%ld, %ld)\n", space, actualSize);
-            return; //****************************************
+            return;
         }
         else if (actualSize == space)
         {
             printf("FULL\n");
-            return; //***************************************
+            return;
         }
         else
         {
@@ -196,7 +196,7 @@ void list(node** head, byte c2[17], long unsigned int actualSize, long unsigned 
                 printf("(%ld, %ld)", distance, (temp->location + temp->size));
             }
             printf("\n");
-            return; // ****************************************************************************** //
+            return;
         }
         printf("FULL\n");
     }
@@ -260,10 +260,10 @@ void find(node **head, byte pname[17], long unsigned int actualSize)
  * @param:pHead = the head process of the llist to start with
  * @param:pNum = the amount of processes we want to make
  */
-void createProcs(process** pHead, int pNum)
+void createProcs(process** pHead, int pNum, node** nHead)
 {
-    char fileNum[6] = {0};
-    *pHead = (process*)malloc(sizeof(process));
+    char fileNum[6] = {0}; //used to hold the file name
+    *pHead = (process*)malloc(sizeof(process)); //allocates room for the first process
     process* pTemp = *pHead;
 
     // creates the correct number of processes
@@ -282,7 +282,7 @@ void createProcs(process** pHead, int pNum)
         else
         {
             // initialize the process
-            pTemp->nHead = NULL;
+            pTemp->nHead = *nHead;
             pTemp->line = 0;
             pTemp->pos = 0;
             pTemp->pNum = i;
@@ -307,7 +307,7 @@ void createProcs(process** pHead, int pNum)
 
 /*
  * delete the linked list of nodes, taken from my Project 2
- * @param:nHead = nHead node
+ * @param:head = head node
  */
 void deleteNodes(node** head)
 {
@@ -325,9 +325,9 @@ void deleteNodes(node** head)
 
 /*
  * delete the list of processes
- * @param:pHead = the first process
+ * @param:pHead = the first (head) process
  */
-void closeProcs(process** pHead)
+void closeProcs(process** pHead, node** nHead)
 {
     process* cur = *pHead;
     process* temp;
@@ -339,9 +339,9 @@ void closeProcs(process** pHead)
     else
     {
         // delete the dllist of nodes in the process if it exists
-        if (cur->nHead != NULL)
+        if (*nHead != NULL)
         {
-            deleteNodes(&cur->nHead);
+            deleteNodes(nHead);
         }
         // delete the processes
         while (cur->isLast != TRUE)
@@ -362,18 +362,20 @@ void closeProcs(process** pHead)
  * set the node heads on all the processes (for when a new head is created in a process)
  * @param:curProc = the head process with the new head
  */
-void setHeads(process** curProc)
+void setHeads(process** curProc, node** nHead)
 {
     process* temp = *curProc;
-    while (temp->isLast == FALSE)
+    temp = temp->next;
+    // loop through the procs and set each nHead to point to the same address
+    while (temp != *curProc)
     {
-        temp->nHead = (*curProc)->nHead;
+        temp->nHead = *nHead;
         temp = temp->next;
     }
-    temp->nHead = (*curProc)->nHead;
+    temp->nHead = *nHead; //last proc
 }
 
-void firstfit(process **curProc, int quantum, int space, long unsigned int* actualSize)
+void firstfit(process **curProc, int quantum, int space, long unsigned int* actualSize, node** nHead)
 {
     byte line[50] = {'\n'}; //execution line
     byte command[10] = {0}; //command
@@ -448,10 +450,11 @@ void firstfit(process **curProc, int quantum, int space, long unsigned int* actu
                 else
                 {
                     // first REQUEST, set up the node list
-                    if ((*curProc)->nHead == NULL)
+                    if (*nHead == NULL)
                     {
                         // set up the head ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ SET UP HEAD NODE
-                        (*curProc)->nHead = (node*)malloc(sizeof(node));
+                        *nHead = (node*)malloc(sizeof(node));
+                        (*curProc)->nHead = *nHead;
                         (*curProc)->nHead->location = 0;
                         (*curProc)->nHead->next = NULL;
                         (*curProc)->nHead->prev = NULL;
@@ -462,11 +465,12 @@ void firstfit(process **curProc, int quantum, int space, long unsigned int* actu
                             (*curProc)->nHead->pname[letter] = pname[letter];
                         }
                         (*curProc)->nHead->size = lpsize;
+                        *nHead = (*curProc)->nHead;
                         *actualSize += lpsize; // increase total size
                         printf("ALLOCATED %s %ld\n", pname, (*curProc)->nHead->location);
                         ++(*curProc)->line;
 
-                        setHeads(curProc); //set the same head node for the pointers
+                        setHeads(curProc, nHead); //set the same head node for the pointers
                     }
                     // check the spot before the head for availability ~~~~~~~~~~~~~~~~~~~~ CHECK BEFORE THE HEAD NODE
                     else if ((*curProc)->nHead->location != 0 && (*curProc)->nHead->location >= lpsize)
@@ -474,9 +478,9 @@ void firstfit(process **curProc, int quantum, int space, long unsigned int* actu
                         node* newNode = (node*)malloc(sizeof(node));
                         memset(newNode->pname, 0, sizeof(newNode->pname));
                         /// set up node
-                        newNode->next = (*curProc)->nHead;
+                        newNode->next = *nHead;
                         newNode->prev = NULL;
-                        (*curProc)->nHead->prev = newNode;
+                        (*nHead)->prev = newNode;
                         newNode->location = 0;
                         newNode->size = lpsize;
                         for (int letter = 0; letter < nameLength; ++letter)
@@ -485,11 +489,12 @@ void firstfit(process **curProc, int quantum, int space, long unsigned int* actu
                         }
                         ///
                         *actualSize += lpsize;
-                        (*curProc)->nHead = newNode;
+                        *nHead = newNode;
+                        (*curProc)->nHead = *nHead;
                         printf("ALLOCATED %s %ld\n", pname, newNode->location);
                         ++(*curProc)->line;
 
-                        setHeads(curProc);
+                        setHeads(curProc, nHead);
 
                         (*curProc)->deadlock = 0; //reset the dl counter for the process on successful alloc
                     }
@@ -498,7 +503,7 @@ void firstfit(process **curProc, int quantum, int space, long unsigned int* actu
                     {
                         int spotFound = FALSE;
                         node* newNode;
-                        node* curNode = (*curProc)->nHead;
+                        node* curNode = *nHead;
 
                         // loop through the nodes looking for room
                         while (curNode->next != NULL)
@@ -538,7 +543,7 @@ void firstfit(process **curProc, int quantum, int space, long unsigned int* actu
 
                             /// set up node
                             newNode->prev = curNode;
-                            newNode->next = curNode->next; // this value should be NULL
+                            newNode->next = NULL;
                             curNode->next = newNode;
                             newNode->location = curNode->location + curNode->size;
                             newNode->size = lpsize;
@@ -576,13 +581,13 @@ void firstfit(process **curProc, int quantum, int space, long unsigned int* actu
                 byte pname[17] = {0};
                 getName(line, pname, &j);
 
-                if ((*curProc)->nHead == NULL)
+                if (*nHead == NULL)
                 {
                     printf("FAIL %s %s\n", RELEASE, pname);
                 }
                 else
                 {
-                    release(&(*curProc)->nHead, pname, actualSize);
+                    release(nHead, pname, actualSize);
                 }
                 ++(*curProc)->line;
             }
@@ -591,7 +596,7 @@ void firstfit(process **curProc, int quantum, int space, long unsigned int* actu
             {
                 byte c2[17] = {0};
                 getName(line, (byte *)&c2, &j);
-                list(&(*curProc)->nHead, c2, *actualSize, space);
+                list(nHead, c2, *actualSize, space);
                 ++(*curProc)->line;
             }
             // find node
@@ -599,7 +604,7 @@ void firstfit(process **curProc, int quantum, int space, long unsigned int* actu
             {
                 byte pname[17] = {0};
                 getName(line, (byte *)&pname, &j);
-                find(&(*curProc)->nHead, pname, *actualSize);
+                find(nHead, pname, *actualSize);
                 ++(*curProc)->line;
             }
             // bad command
@@ -621,13 +626,29 @@ void firstfit(process **curProc, int quantum, int space, long unsigned int* actu
     }
 }
 
-void firstfitRR(int space, int pNum, int quantum, process **pHead, long unsigned int* actualSize)
+int isComplete(process** pHead)
+{
+    process* temp = *pHead;
+
+    while (temp->isLast == FALSE)
+    {
+        if (temp->line > 0)
+            return FALSE;
+
+        temp = temp->next;
+    }
+    if (temp->line > 0)
+        return FALSE;
+
+    return TRUE;
+}
+
+void firstfitRR(int space, int pNum, int quantum, process **pHead, long unsigned int* actualSize, node** nHead)
 {
     process* curProc = *pHead;
-    int isComplete = FALSE;
 
     // main loop, goes through all the processes in a round-robin fashion until complete
-    while (isComplete == FALSE)
+    do
     {
         // loops through each process, from 0-[7]
         for (int i = 0; i < pNum; ++i)
@@ -638,12 +659,10 @@ void firstfitRR(int space, int pNum, int quantum, process **pHead, long unsigned
                 curProc = curProc->next;
                 continue;
             }
-
-            firstfit(&curProc, quantum, space, actualSize);
+            firstfit(&curProc, quantum, space, actualSize, nHead);
             curProc = curProc->next;
         }
-        isComplete = TRUE;
-    }
+    } while (isComplete(pHead) == FALSE);
 }
 
 
@@ -653,15 +672,15 @@ void firstfitRR(int space, int pNum, int quantum, process **pHead, long unsigned
 int main(int argc, char** argv)
 {
     // check to make sure enough arguments are typed in the CL
-   /* if (argc < 5)
+    if (argc < 5)
     {
         fprintf(stderr, "not enough arguments\n");
         exit(-1);
-    }*/
+    }
 
-    int quantum = /*atoi(argv[1])*/ 8;
-    int pNum = /*atoi(argv[2])*/ 4;
-    int totalSpace = /*atoi(argv[3])*/ 64;
+    int quantum = atoi(argv[1]);
+    int pNum = atoi(argv[2]);
+    int totalSpace = atoi(argv[3]);
     long unsigned int actualSize = 0; //amount of memory already allocated
 
     // check for valid quantum size
@@ -684,26 +703,24 @@ int main(int argc, char** argv)
     }
 
     process* pHead = NULL;
-    createProcs(&pHead, pNum);
-
-    /*printf("YERRRRRRRR\n");
-    closeProcs(&pHead);
-    exit(-69);*/
+    node* nHead = NULL;
+    createProcs(&pHead, pNum, &nHead);
 
 
-    if (strcmp(/*argv[5]*/"FIRSTFIT", FIRSTFIT) == 0)
+    if (strcmp(argv[5]/*"FIRSTFIT"*/, FIRSTFIT) == 0)
     {
-        firstfitRR(totalSpace, pNum, quantum, &pHead, &actualSize);
+        firstfitRR(totalSpace, pNum, quantum, &pHead, &actualSize, &nHead);
     }
     else if (strcmp(argv[5]/*"BUDDY"*/, BUDDY) == 0)
     {
         // TODO: extra credit for implementing the buddy system
+        return 0;
     }
     else
     {
         fprintf(stderr, "invalid method of allocation\n");
-        closeProcs(&pHead);
+        closeProcs(&pHead, &nHead);
         exit(-1);
     }
-    closeProcs(&pHead);
+    closeProcs(&pHead, &nHead); //free the processes and the nodes
 }
