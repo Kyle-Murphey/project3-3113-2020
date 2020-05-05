@@ -441,7 +441,7 @@ void firstfit(process **curProc, int quantum, int space, long unsigned int* actu
                     if ((*curProc)->deadlock > 1)
                     {
                         printf("DEADLOCK DETECTED\n");
-                        exit(-1);
+                        exit(0);
                     }
                     return;
                 }
@@ -473,7 +473,7 @@ void firstfit(process **curProc, int quantum, int space, long unsigned int* actu
                         setHeads(curProc, nHead); //set the same head node for the pointers
                     }
                     // check the spot before the head for availability ~~~~~~~~~~~~~~~~~~~~ CHECK BEFORE THE HEAD NODE
-                    else if ((*curProc)->nHead->location != 0 && (*curProc)->nHead->location >= lpsize)
+                    else if ((*nHead)->location != 0 && (*nHead)->location >= lpsize)
                     {
                         node* newNode = (node*)malloc(sizeof(node));
                         memset(newNode->pname, 0, sizeof(newNode->pname));
@@ -567,7 +567,7 @@ void firstfit(process **curProc, int quantum, int space, long unsigned int* actu
                             if ((*curProc)->deadlock > 1)
                             {
                                 printf("DEADLOCK DETECTED\n");
-                                exit(-1);
+                                exit(0);
                             }
                             return;
                         }
@@ -672,15 +672,15 @@ void firstfitRR(int space, int pNum, int quantum, process **pHead, long unsigned
 int main(int argc, char** argv)
 {
     // check to make sure enough arguments are typed in the CL
-    if (argc < 5)
+    /*if (argc < 5)
     {
         fprintf(stderr, "not enough arguments\n");
         exit(-1);
-    }
+    }*/
 
-    int quantum = atoi(argv[1]);
-    int pNum = atoi(argv[2]);
-    int totalSpace = atoi(argv[3]);
+    int quantum = /*atoi(argv[1])*/8;
+    int pNum = /*atoi(argv[2])*/8;
+    int totalSpace = /*atoi(argv[3])*/653556;
     long unsigned int actualSize = 0; //amount of memory already allocated
 
     // check for valid quantum size
@@ -707,11 +707,11 @@ int main(int argc, char** argv)
     createProcs(&pHead, pNum, &nHead);
 
 
-    if (strcmp(argv[5]/*"FIRSTFIT"*/, FIRSTFIT) == 0)
+    if (strcmp(/*argv[4]*/"FIRSTFIT", FIRSTFIT) == 0)
     {
         firstfitRR(totalSpace, pNum, quantum, &pHead, &actualSize, &nHead);
     }
-    else if (strcmp(argv[5]/*"BUDDY"*/, BUDDY) == 0)
+    else if (strcmp(argv[4]/*"BUDDY"*/, BUDDY) == 0)
     {
         // TODO: extra credit for implementing the buddy system
         return 0;
