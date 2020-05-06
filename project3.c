@@ -20,9 +20,6 @@
 #define ASSIGNED "ASSIGNED"
 
 
-/* unsigned char */
-//typedef unsigned char byte;
-
 /* node struct for holding the data, taken from my Project 2 */
 typedef struct node {
     char pname[17]; //name
@@ -144,7 +141,6 @@ void release(node** head, char pname[17], long unsigned int *actualSize)
         return;
     }
 }
-
 
 /*
  * list available and assigned spots in memory
@@ -375,21 +371,28 @@ void setHeads(process** curProc, node** nHead)
     temp->nHead = *nHead; //last proc
 }
 
+/*
+ * first fit algorithm, stores node in first available spot in memory
+ * @param:curProc = currently running process
+ * @param:quantum = amount of instruction to run before switching processes
+ * @param:space = initial amount of spaces open for allocation
+ * @param:actualSize = amount of space allocated
+ * @param:nHead = head node
+ */
 void firstfit(process **curProc, int quantum, int space, long unsigned int* actualSize, node** nHead)
 {
     char line[50] = {'\n'}; //execution line
     char command[10] = {0}; //command
 
     int j = 0; //index of instruction line
-    //fflush((*curProc)->file);
     // executing the number of instructions (quantum) specified for each process
     for (int i = 0; i < quantum; ++i)
     {
         if ((*curProc)->line < 0)
             break;
 
-        (*curProc)->pos = ftell((*curProc)->file);
-        fseek((*curProc)->file, (*curProc)->pos, SEEK_SET);
+        (*curProc)->pos = ftell((*curProc)->file); //set the position in the instruction file for the proc
+        fseek((*curProc)->file, (*curProc)->pos, SEEK_SET); //set the position in the file
         // get instruction line
         if ((fgets(line, sizeof(line), (*curProc)->file)) != NULL)
         {
@@ -494,7 +497,7 @@ void firstfit(process **curProc, int quantum, int space, long unsigned int* actu
                         printf("ALLOCATED %s %ld\n", pname, newNode->location);
                         ++(*curProc)->line;
 
-                        setHeads(curProc, nHead);
+                        setHeads(curProc, nHead); //set the same head node for the pointers
 
                         (*curProc)->deadlock = 0; //reset the dl counter for the process on successful alloc
                     }
@@ -508,7 +511,8 @@ void firstfit(process **curProc, int quantum, int space, long unsigned int* actu
                         // loop through the nodes looking for room
                         while (curNode->next != NULL)
                         {
-                            if ((curNode->next->location - (curNode->location + curNode->size)) > lpsize)
+                            // room found to alloc
+                            if ((curNode->next->location - (curNode->location + curNode->size)) >= lpsize)
                             {
                                 newNode = (node*)malloc(sizeof(node));
                                 memset(newNode->pname, 0, sizeof(newNode->pname));
@@ -529,7 +533,7 @@ void firstfit(process **curProc, int quantum, int space, long unsigned int* actu
                                 printf("ALLOCATED %s %ld\n", pname, newNode->location);
                                 ++(*curProc)->line;
 
-                                (*curProc)->deadlock = 0;
+                                (*curProc)->deadlock = 0; //reset deadlock
                                 spotFound = TRUE;
                                 break;
                             }
@@ -556,8 +560,9 @@ void firstfit(process **curProc, int quantum, int space, long unsigned int* actu
                             printf("ALLOCATED %s %ld\n", pname, newNode->location);
                             ++(*curProc)->line;
 
-                            (*curProc)->deadlock = 0;
+                            (*curProc)->deadlock = 0; //reset deadlock
                         }
+                        // failed to allocate
                         else if (spotFound == FALSE)
                         {
                             printf("FAIL %s %s %ld\n", REQUEST, pname, lpsize);
@@ -618,18 +623,25 @@ void firstfit(process **curProc, int quantum, int space, long unsigned int* actu
         {
             if ((*curProc)->line > 0)
                 (*curProc)->line *= -1;
+            // if this else if is run, it means that the .ins file was blank
             else if ((*curProc)->line == 0)
                 (*curProc)->line = -1;
         }
         j = 0;
-        memset(command, 0, sizeof(command));
+        memset(command, 0, sizeof(command)); //reset command
     }
 }
 
+/*
+ * flag function, used to check for process completion
+ * @param:pHead = head process
+ * @return = TRUE/FALSE depending on if every proc is done
+ */
 int isComplete(process** pHead)
 {
     process* temp = *pHead;
 
+    // start at head proc, and loop until last proc
     while (temp->isLast == FALSE)
     {
         if (temp->line > 0)
@@ -643,6 +655,15 @@ int isComplete(process** pHead)
     return TRUE;
 }
 
+/*
+ * set up the round-robin list for the processes, and call the firstfit algorithm
+ * @param:space = initial amount of spaces open for allocation
+ * @param:pNum = amount of processes
+ * @param:quantum = amount of instruction to run before switching processes
+ * @param:pHead = the head process
+ * @param:actualSize = amount of space allocated
+ * @param:nHead = head node
+ */
 void firstfitRR(int space, int pNum, int quantum, process **pHead, long unsigned int* actualSize, node** nHead)
 {
     process* curProc = *pHead;
@@ -659,12 +680,11 @@ void firstfitRR(int space, int pNum, int quantum, process **pHead, long unsigned
                 curProc = curProc->next;
                 continue;
             }
-            firstfit(&curProc, quantum, space, actualSize, nHead);
+            firstfit(&curProc, quantum, space, actualSize, nHead); //FIRSTFIT function for the nodes
             curProc = curProc->next;
         }
     } while (isComplete(pHead) == FALSE);
 }
-
 
 /*
  * the main function, runs initial checks on the CL input and then calls a function for the appropriate style of allocation
@@ -672,15 +692,15 @@ void firstfitRR(int space, int pNum, int quantum, process **pHead, long unsigned
 int main(int argc, char** argv)
 {
     // check to make sure enough arguments are typed in the CL
-    /*if (argc < 5)
+    if (argc < 5)
     {
         fprintf(stderr, "not enough arguments\n");
         exit(-1);
-    }*/
+    }
 
-    int quantum = /*atoi(argv[1])*/8;
-    int pNum = /*atoi(argv[2])*/8;
-    int totalSpace = /*atoi(argv[3])*/653556;
+    int quantum = atoi(argv[1]);
+    int pNum = atoi(argv[2]);
+    int totalSpace = atoi(argv[3]);
     long unsigned int actualSize = 0; //amount of memory already allocated
 
     // check for valid quantum size
@@ -702,12 +722,13 @@ int main(int argc, char** argv)
         exit(-1);
     }
 
-    process* pHead = NULL;
-    node* nHead = NULL;
-    createProcs(&pHead, pNum, &nHead);
+    process* pHead = NULL; //head process
+    node* nHead = NULL; //head node
 
+    createProcs(&pHead, pNum, &nHead); //create all the processes and order them in RR fashion
 
-    if (strcmp(/*argv[4]*/"FIRSTFIT", FIRSTFIT) == 0)
+    // run the first fit algo
+    if (strcmp(argv[4]/*"FIRSTFIT"*/, FIRSTFIT) == 0)
     {
         firstfitRR(totalSpace, pNum, quantum, &pHead, &actualSize, &nHead);
     }
@@ -716,6 +737,7 @@ int main(int argc, char** argv)
         // TODO: extra credit for implementing the buddy system
         return 0;
     }
+    // bad CL input
     else
     {
         fprintf(stderr, "invalid method of allocation\n");
