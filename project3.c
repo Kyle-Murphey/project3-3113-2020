@@ -21,11 +21,11 @@
 
 
 /* unsigned char */
-typedef unsigned char byte;
+//typedef unsigned char byte;
 
 /* node struct for holding the data, taken from my Project 2 */
 typedef struct node {
-    byte pname[17]; //name
+    char pname[17]; //name
     long unsigned int size; //size of alloc
     long unsigned int location; //starting point of data
     struct node* next; //next in line
@@ -40,7 +40,7 @@ typedef struct process {
     int pNum; //ID to keep track of processes
     int line; //line of execution
     int isLast; //flag for element that connects behind the pHead
-    unsigned long pos; //position in the instruction file
+    long pos; //position in the instruction file
     int deadlock; //tracker for contiguous deadlocks in a process
 } process;
 
@@ -50,10 +50,10 @@ typedef struct process {
 * @param:pname = place to store name
 * @param:i = index of line
 */
-void getName(byte* line, byte* pname, int* i)
+void getName(char* line, char* pname, int* i)
 {
     int j = 0;
-    byte name[17] = {0};
+    char name[17] = {0};
     // get the process name
     while (line[*i] != '\n' && line[*i] != '\000' && line[*i] != ' ')
     {
@@ -70,7 +70,7 @@ void getName(byte* line, byte* pname, int* i)
  * @param:pname = name of process
  * @param:actualSize = amount allocated
  */
-void release(node** head, byte pname[17], long unsigned int *actualSize)
+void release(node** head, char pname[17], long unsigned int *actualSize)
 {
     // nothing allocated
     if (*actualSize == 0)
@@ -137,7 +137,7 @@ void release(node** head, byte pname[17], long unsigned int *actualSize)
         }
 
     }
-        // name not found
+    // name not found
     else
     {
         printf("FAIL %s %s\n", RELEASE, pname);
@@ -153,7 +153,7 @@ void release(node** head, byte pname[17], long unsigned int *actualSize)
  * @param:actualSize = total amount allocated
  * @param:space = total space we are using
  */
-void list(node** head, byte c2[17], long unsigned int actualSize, long unsigned int space)
+void list(node** head, char c2[17], long unsigned int actualSize, long unsigned int space)
 {
     // display free spots
     if (strcmp(c2, AVAILABLE) == 0)
@@ -227,7 +227,7 @@ void list(node** head, byte c2[17], long unsigned int actualSize, long unsigned 
  * @param:pname = name to search for
  * @param:actualSize = amount alloc'ed
  */
-void find(node **head, byte pname[17], long unsigned int actualSize)
+void find(node **head, char pname[17], long unsigned int actualSize)
 {
     if (actualSize == 0)
     {
@@ -269,7 +269,7 @@ void createProcs(process** pHead, int pNum, node** nHead)
     // creates the correct number of processes
     for (int i = 0; i < pNum; ++i)
     {
-        fileNum[0] = i + '0'; //holds name of file to open
+        fileNum[0] = (char)(i + '0'); //holds name of file to open
         strcat(fileNum, ".ins"); //adds '.ins' to the pNum for file format
 
         // check if file is valid
@@ -377,8 +377,8 @@ void setHeads(process** curProc, node** nHead)
 
 void firstfit(process **curProc, int quantum, int space, long unsigned int* actualSize, node** nHead)
 {
-    byte line[50] = {'\n'}; //execution line
-    byte command[10] = {0}; //command
+    char line[50] = {'\n'}; //execution line
+    char command[10] = {0}; //command
 
     int j = 0; //index of instruction line
     //fflush((*curProc)->file);
@@ -411,13 +411,13 @@ void firstfit(process **curProc, int quantum, int space, long unsigned int* actu
             if (strcmp(command, REQUEST) == 0)
             {
                 //************************************************************************************************** GET ALL THE DATA FOR THE REQUEST
-                byte pname[17] = {0}; //process name
-                byte bpsize[11] = {0}; //process size stored as bytes
+                char pname[17] = {0}; //process name
+                char bpsize[11] = {0}; //process size stored as bytes
                 long unsigned int lpsize; //process size
                 int nameLength = 0; //name length
 
                 getName(line, pname, &j);
-                nameLength = strlen(pname);
+                nameLength = (int)strlen(pname);
                 ++j;
 
                 int k = 0;
@@ -578,7 +578,7 @@ void firstfit(process **curProc, int quantum, int space, long unsigned int* actu
             // release allocation
             else if (strcmp(command, RELEASE) == 0)
             {
-                byte pname[17] = {0};
+                char pname[17] = {0};
                 getName(line, pname, &j);
 
                 if (*nHead == NULL)
@@ -594,16 +594,16 @@ void firstfit(process **curProc, int quantum, int space, long unsigned int* actu
             // list available or assigned
             else if (strcmp(command, LIST) == 0)
             {
-                byte c2[17] = {0};
-                getName(line, (byte *)&c2, &j);
+                char c2[17] = {0};
+                getName(line, (char *)&c2, &j);
                 list(nHead, c2, *actualSize, space);
                 ++(*curProc)->line;
             }
             // find node
             else if (strcmp(command, FIND) == 0)
             {
-                byte pname[17] = {0};
-                getName(line, (byte *)&pname, &j);
+                char pname[17] = {0};
+                getName(line, (char *)&pname, &j);
                 find(nHead, pname, *actualSize);
                 ++(*curProc)->line;
             }
