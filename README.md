@@ -67,7 +67,7 @@ _Sources:_
 > processes and how much time they need. Imagine you have one very large process at the 
 > beginning of the ready queue and 6 smaller processes following it. If the time quantum is
 > large, then the 6 following processes will be waiting longer than they should be (especially if
-> their runtimes' are less than the quantum). If we shrink down the quantum size, it
+> their runtimes are less than the quantum). If we shrink down the quantum size, it
 > will context switch out of the bigger process and onto the smaller ones. This will result in
 > a lot lower average waiting times for all of the processes. However, if we reverse the order
 > of the processes and place the smaller ones first, a large time quantum will work perfectly.
@@ -77,4 +77,4 @@ _Sources:_
 > affect them? If the quantum is too small, then there will be a lot of context switches 
 > and that will slow down the processes. Ideally, you want the majority of your processes to 
 > take less time than the allowed amount given by the quantum. This will allow for a shorter average
-> waiting time and a lot less context switches._
+> waiting time and a lot less context switches and an overall increase in efficiency._
